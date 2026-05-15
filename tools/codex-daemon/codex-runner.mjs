@@ -1,7 +1,31 @@
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { redact, runDir } from './state.mjs';
+
+async function fileExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveCodexCommand() {
+  if (process.env.CODEX_CLI_PATH && (await fileExists(process.env.CODEX_CLI_PATH))) {
+    return process.env.CODEX_CLI_PATH;
+  }
+
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    const localInstall = path.join(process.env.LOCALAPPDATA, 'OpenAI', 'Codex', 'bin', 'codex.exe');
+    if (await fileExists(localInstall)) {
+      return localInstall;
+    }
+  }
+
+  return 'codex';
+}
 
 export async function runCodex({ rootDir, runId, prompt }) {
   const dir = runDir(rootDir, runId);
@@ -21,11 +45,16 @@ export async function runCodex({ rootDir, runId, prompt }) {
     finalPath,
     '-'
   ];
+  const codexCommand = await resolveCodexCommand();
 
-  await writeFile(commandPath, `codex ${args.map((arg) => JSON.stringify(arg)).join(' ')}\n`, 'utf8');
+  await writeFile(
+    commandPath,
+    `${JSON.stringify(codexCommand)} ${args.map((arg) => JSON.stringify(arg)).join(' ')}\n`,
+    'utf8'
+  );
 
   return new Promise((resolve) => {
-    const child = spawn('codex', args, {
+    const child = spawn(codexCommand, args, {
       cwd: rootDir,
       shell: false,
       windowsHide: true
@@ -54,7 +83,7 @@ export async function runCodex({ rootDir, runId, prompt }) {
         stderr,
         finalPath,
         eventsPath,
-        command: 'codex',
+        command: codexCommand,
         args
       });
     });
@@ -66,7 +95,7 @@ export async function runCodex({ rootDir, runId, prompt }) {
         stderr: `${stderr}\n${redact(error.message)}`,
         finalPath,
         eventsPath,
-        command: 'codex',
+        command: codexCommand,
         args
       });
     });
