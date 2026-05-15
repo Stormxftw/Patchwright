@@ -27,7 +27,7 @@ async function resolveCodexCommand() {
   return 'codex';
 }
 
-export async function runCodex({ rootDir, runId, prompt }) {
+export async function runCodex({ rootDir, runId, prompt, sandbox = 'workspace-write' }) {
   const dir = runDir(rootDir, runId);
   await mkdir(dir, { recursive: true });
 
@@ -40,7 +40,7 @@ export async function runCodex({ rootDir, runId, prompt }) {
     '--cd',
     rootDir,
     '--sandbox',
-    'workspace-write',
+    sandbox,
     '--output-last-message',
     finalPath,
     '-'

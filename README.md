@@ -5,7 +5,7 @@ An experimental local daemon that treats a GitHub Project board like a queue for
 The short version:
 
 ```text
-GitHub Project issue -> daemon claims it -> Codex CLI works locally -> draft PR -> human review
+GitHub Project issue -> packet check -> optional localization -> Codex CLI works locally -> draft PR -> human review
 ```
 
 This is not an official OpenAI project. It is a personal experiment for exploring how far a lightweight, GitHub-native R&D loop can go before it becomes too risky, too complicated, or too opinionated.
@@ -30,14 +30,17 @@ The daemon can:
 
 - Read GitHub Projects v2 items with `gh project item-list`.
 - Pick one `Ready` issue.
+- Check that the issue has a complete task packet.
+- Move incomplete packets to `Needs info` without running Codex.
 - Move it to `In progress`.
 - Assign it to a configured GitHub user.
 - Add a `codex:claimed` label.
 - Comment on the issue with a run id.
 - Create or switch to a branch.
+- Run a read-only localization pass first when the packet is complete but not localized.
 - Run `codex exec --json` against the local repo.
 - Save Codex output under `.codex-daemon/`.
-- Run lightweight verification.
+- Run packet-provided validation commands, with lightweight fallback verification.
 - Commit only files changed by the daemon run.
 - Push the branch.
 - Open a draft PR.
@@ -174,9 +177,15 @@ Fill in:
     "ready": "READY_OPTION_ID",
     "inProgress": "IN_PROGRESS_OPTION_ID",
     "inReview": "IN_REVIEW_OPTION_ID",
-    "done": "DONE_OPTION_ID"
+    "done": "DONE_OPTION_ID",
+    "blocked": "BLOCKED_OPTION_ID",
+    "needsInfo": "NEEDS_INFO_OPTION_ID",
+    "abandoned": "ABANDONED_OPTION_ID"
   },
-  "assignee": "GITHUB_USERNAME"
+  "assignee": "GITHUB_USERNAME",
+  "packetIncompleteStatus": "needsInfo",
+  "packetRequiredFields": ["goal", "scope", "acceptanceCriteria", "validationCommands"],
+  "maxValidationCommands": 5
 }
 ```
 
@@ -199,6 +208,8 @@ Dry run:
 ```powershell
 npm run daemon:dry-run
 ```
+
+Dry runs print the selected issue, packet completeness, selected worker role, planned validation commands, branch, and Codex command without mutating GitHub or git.
 
 Run one task:
 
@@ -230,6 +241,44 @@ Recover from a stale local lock:
 npm run daemon:once -- --recover
 ```
 
+## Real Workflow Smoke Test
+
+Use a disposable issue before trusting a new daemon setup with real work.
+
+1. Create an issue that uses the required packet shape and limits the change to one harmless file.
+2. Add the issue to the GitHub Project board.
+3. Set `Daemon Status` to `Ready`.
+4. Run:
+
+```powershell
+npm run daemon:dry-run
+```
+
+Expected dry-run output should show:
+
+```text
+Packet status: complete
+Worker role: fixer
+Validation commands: npm run check && npm test
+Planned status: In progress
+```
+
+Then run one real task:
+
+```powershell
+npm run daemon:once
+```
+
+Expected real-run outcome:
+
+- Issue is assigned and labeled `codex:claimed`.
+- Project status moves to `In progress`, then `In review`.
+- A feature branch is pushed.
+- A draft PR is opened.
+- The PR includes only files created or changed by the daemon run.
+- The issue evidence comment includes packet status, worker role, validation results, changed files, and final git status after commit.
+- If the worker changes files outside `Allowed Paths`, the daemon moves the issue to `Blocked`, comments with the out-of-scope files, and does not commit or open a PR.
+
 ## Safety Model
 
 The daemon is intentionally cautious:
@@ -238,18 +287,40 @@ The daemon is intentionally cautious:
 - Real runs stop on a dirty worktree unless `--allow-dirty` is passed.
 - If `--allow-dirty` is passed, existing dirty files are recorded before Codex runs.
 - The daemon commits only files that were not already dirty at baseline.
+- When `Allowed Paths` are provided, the daemon refuses to commit files outside those paths.
 - Runtime state is written under `.codex-daemon/`, which should be gitignored.
 - Common token and key patterns are redacted from daemon logs and issue comments.
 - No auto-merge behavior exists in v1.
 
 ## Issue Quality Matters
 
-Daemon-ready issues should be concrete.
+Daemon-ready issues must include a small task packet. The daemon requires Goal, Scope, Acceptance Criteria, and Validation Commands before it will claim the issue for implementation.
 
 Good:
 
-```text
-Add a migration that creates profiles, organizations, and organization_members with RLS policies scoped by organization membership. Verify with the app build and migration checks.
+```md
+## Goal
+
+Add a migration that creates profiles, organizations, and organization_members with RLS policies scoped by organization membership.
+
+## Scope
+
+- Add the migration only.
+- Do not change application UI.
+
+## Allowed Paths
+
+- supabase/migrations/**
+
+## Acceptance Criteria
+
+- [ ] Tables are created with organization-scoped RLS.
+- [ ] Existing migrations still apply cleanly.
+
+## Validation Commands
+
+- npm run check
+- supabase db reset
 ```
 
 Bad:
@@ -258,27 +329,40 @@ Bad:
 Fix backend stuff.
 ```
 
-Suggested issue shape:
+Required issue shape:
 
 ```md
-## Purpose
+## Goal
 
-Why this work exists.
+One-sentence objective.
 
 ## Scope
 
 - What should change.
 - What should not change.
 
+## Allowed Paths
+
+- Optional path or glob list. Helps the daemon skip read-only localization.
+
+## Suspect Files
+
+- Optional file list when exact paths are known.
+
+## Constraints
+
+- Optional implementation constraints.
+
 ## Acceptance Criteria
 
 - [ ] Concrete pass/fail outcome.
-- [ ] Verification command or evidence.
 
-## Notes
+## Validation Commands
 
-Relevant constraints or links.
+- npm run check
 ```
+
+If `Allowed Paths` and `Suspect Files` are both missing, or the scope appears broad, the daemon runs a read-only localization pass before the fixer. It still uses exactly one write-capable Codex worker for the implementation attempt.
 
 ## Contributing
 

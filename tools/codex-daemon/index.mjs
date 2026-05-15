@@ -18,6 +18,7 @@ import {
   pushBranch,
   removeIssueLabel,
   runCommand,
+  runShellCommand,
   setProjectStatus
 } from './github.mjs';
 import { runCodex } from './codex-runner.mjs';
@@ -34,6 +35,13 @@ import {
   writeLock
 } from './state.mjs';
 import { branchName, buildCodexPrompt } from './prompts.mjs';
+import {
+  filesOutsideAllowedPaths,
+  formatMissingPacketComment,
+  formatScopeViolationComment,
+  packetStatus,
+  parseTaskPacket
+} from './packet.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const defaultConfigPath = path.join(rootDir, 'tools', 'codex-daemon', 'config.example.json');
@@ -273,10 +281,25 @@ async function claimIssue(config, flags, issue, runId) {
   }
 }
 
-async function verifyChanges(files) {
+async function verifyChanges(files, packet, config) {
   const results = [];
+  const commands = packet?.validationCommands?.length
+    ? packet.validationCommands.slice(0, config.maxValidationCommands ?? 5)
+    : [];
 
-  if (filesNeedBuild(files)) {
+  for (const command of commands) {
+    const result = await runShellCommand(command, { cwd: rootDir }).catch(
+      (error) => error.result ?? { stdout: '', stderr: error.message, exitCode: 1 }
+    );
+    results.push({
+      command,
+      exitCode: result.exitCode,
+      stdout: result.stdout.slice(-4000),
+      stderr: result.stderr.slice(-4000)
+    });
+  }
+
+  if (!commands.length && filesNeedBuild(files)) {
     const result = await runCommand('npm.cmd', ['run', 'build'], { cwd: rootDir });
     results.push({
       command: 'npm.cmd run build',
@@ -286,7 +309,7 @@ async function verifyChanges(files) {
     });
   }
 
-  if (filesNeedPlaceholderCheck(files)) {
+  if (!commands.length && filesNeedPlaceholderCheck(files)) {
     const placeholderData = await runCommand('rg', ['-n', 'PLACEHOLDER-DATA'], { cwd: rootDir }).catch(
       (error) => error.result ?? { stdout: '', stderr: error.message, exitCode: 1 }
     );
@@ -316,7 +339,18 @@ function summarizeVerification(results) {
 
 async function processIssue(config, flags, issue) {
   const runId = runIdFor(issue);
-  await appendLedger(rootDir, { type: 'run_started', runId, issueNumber: issue.number, dryRun: flags.dryRun });
+  const packet = parseTaskPacket(issue, config);
+  const status = packetStatus(packet);
+  const incompleteStatusKey = config.packetIncompleteStatus ?? 'needsInfo';
+  await appendLedger(rootDir, {
+    type: 'run_started',
+    runId,
+    issueNumber: issue.number,
+    dryRun: flags.dryRun,
+    packetStatus: status,
+    workerRole: packet.role,
+    validationCommands: packet.validationCommands
+  });
 
   const branch = branchName(config, issue);
   const codexCommand = `codex exec --json --cd ${rootDir} --sandbox workspace-write --output-last-message ${path.join(
@@ -327,17 +361,48 @@ async function processIssue(config, flags, issue) {
   if (flags.dryRun) {
     console.log(`Candidate issue: #${issue.number} ${issue.title}`);
     console.log(`Current status: ${issue.projectStatus}`);
-    console.log(`Planned status: In progress`);
+    console.log(`Packet status: ${status}`);
+    console.log(`Worker role: ${packet.role}`);
+    console.log(
+      `Validation commands: ${
+        packet.validationCommands.length ? packet.validationCommands.join(' && ') : '(fallback verification)'
+      }`
+    );
+    if (!packet.complete) {
+      console.log(`Missing packet fields: ${packet.missingFields.join(', ')}`);
+      console.log(`Planned status: ${incompleteStatusKey}`);
+    } else {
+      console.log(`Planned status: In progress`);
+    }
     console.log(`Planned branch: ${branch}`);
     console.log(`Planned Codex command: ${codexCommand}`);
     await appendLedger(rootDir, {
       type: 'dry_run_selected',
       runId,
       issueNumber: issue.number,
+      packetStatus: status,
+      workerRole: packet.role,
+      validationCommands: packet.validationCommands,
+      missingFields: packet.missingFields,
       branch,
       codexCommand
     });
     return { processed: false, dryRun: true };
+  }
+
+  if (!packet.complete) {
+    if (issue.itemId) {
+      await setProjectStatus(config, rootDir, issue.itemId, incompleteStatusKey);
+    }
+    await addIssueComment(config, rootDir, issue.number, formatMissingPacketComment(packet));
+    await appendLedger(rootDir, {
+      type: 'packet_incomplete',
+      runId,
+      issueNumber: issue.number,
+      missingFields: packet.missingFields,
+      status: incompleteStatusKey
+    });
+    return { processed: false, packetIncomplete: true };
   }
 
   await ensureWorktreeAllowed(flags);
@@ -349,20 +414,91 @@ async function processIssue(config, flags, issue) {
     await mkdir(runDir(rootDir, runId), { recursive: true });
     await createOrSwitchBranch(rootDir, branch);
     const baselineFiles = await baselineDirtyFiles();
-    const prompt = await buildCodexPrompt(rootDir, config, claimedIssue, runId, claimedIssue.projectStatus);
+    let effectivePacket = packet;
+
+    if (packet.role === 'explorer') {
+      const explorerRunId = `${runId}-explorer`;
+      const explorerPrompt = await buildCodexPrompt(rootDir, config, claimedIssue, explorerRunId, claimedIssue.projectStatus, packet);
+      const explorerResult = await runCodex({
+        rootDir,
+        runId: explorerRunId,
+        prompt: explorerPrompt,
+        sandbox: 'read-only'
+      });
+      const explorerSummary = await readFile(explorerResult.finalPath, 'utf8').catch(() => '');
+      await appendLedger(rootDir, {
+        type: 'codex_explorer_finished',
+        runId,
+        issueNumber: claimedIssue.number,
+        exitCode: explorerResult.exitCode,
+        stderr: explorerResult.stderr,
+        finalPath: explorerResult.finalPath
+      });
+
+      if (explorerResult.exitCode !== 0) {
+        await setProjectStatus(config, rootDir, claimedIssue.itemId, 'ready');
+        await removeIssueLabel(config, rootDir, claimedIssue.number, config.claimLabel);
+        await addIssueComment(
+          config,
+          rootDir,
+          claimedIssue.number,
+          `Codex daemon run ${runId} failed during read-only localization.\n\n${redact(
+            explorerResult.stderr || 'No stderr captured.'
+          )}`
+        );
+        return { processed: false, failed: true };
+      }
+
+      effectivePacket = {
+        ...packet,
+        role: 'fixer',
+        explorerSummary
+      };
+    }
+
+    const prompt = await buildCodexPrompt(rootDir, config, claimedIssue, runId, claimedIssue.projectStatus, effectivePacket);
     codexResult = await runCodex({ rootDir, runId, prompt });
     await appendLedger(rootDir, {
       type: 'codex_finished',
       runId,
       issueNumber: claimedIssue.number,
       exitCode: codexResult.exitCode,
-      stderr: codexResult.stderr
+      stderr: codexResult.stderr,
+      packetStatus: status,
+      workerRole: effectivePacket.role
     });
 
     const currentFiles = await changedFiles(rootDir);
     const files = currentFiles.filter((file) => !baselineFiles.has(file) && !file.includes(runtimeDir));
-    const verification = await verifyChanges(files);
-    const statusAfter = await gitStatus(rootDir);
+    const outOfScopeFiles = filesOutsideAllowedPaths(files, effectivePacket.allowedPaths);
+    if (outOfScopeFiles.length) {
+      await setProjectStatus(config, rootDir, claimedIssue.itemId, 'blocked');
+      await addIssueLabel(config, rootDir, claimedIssue.number, config.blockedLabel);
+      await addIssueComment(
+        config,
+        rootDir,
+        claimedIssue.number,
+        formatScopeViolationComment(runId, outOfScopeFiles, effectivePacket.allowedPaths)
+      );
+      await appendLedger(rootDir, {
+        type: 'scope_violation',
+        runId,
+        issueNumber: claimedIssue.number,
+        changedFiles: files,
+        outOfScopeFiles,
+        allowedPaths: effectivePacket.allowedPaths
+      });
+      return { processed: false, blocked: true, outOfScopeFiles };
+    }
+
+    const verification = await verifyChanges(files, effectivePacket, config);
+    await appendLedger(rootDir, {
+      type: 'run_changes_detected',
+      runId,
+      issueNumber: claimedIssue.number,
+      changedFiles: files,
+      validationCommands: effectivePacket.validationCommands
+    });
 
     if (codexResult.exitCode !== 0 && !files.length) {
       await setProjectStatus(config, rootDir, claimedIssue.itemId, 'ready');
@@ -390,6 +526,7 @@ async function processIssue(config, flags, issue) {
 
     const failedVerification = verification.some((result) => result.exitCode !== 0);
     await commitFiles(rootDir, files, `codex: implement issue #${claimedIssue.number}`);
+    const statusAfter = await gitStatus(rootDir);
     await pushBranch(rootDir, branch);
 
     prUrl = await createDraftPr(
@@ -397,12 +534,21 @@ async function processIssue(config, flags, issue) {
       rootDir,
       branch,
       `[codex] ${claimedIssue.title}`,
-      `Implements #${claimedIssue.number} via Codex daemon run ${runId}.\n\nVerification:\n${summarizeVerification(
+      `Implements #${claimedIssue.number} via Codex daemon run ${runId}.\n\nPacket status: ${status}\nWorker role: ${effectivePacket.role}\n\nVerification:\n${summarizeVerification(
         verification
       )}\n\nLocal final message: ${codexResult.finalPath}`
     );
 
     await setProjectStatus(config, rootDir, claimedIssue.itemId, 'inReview');
+    await appendLedger(rootDir, {
+      type: 'draft_pr_opened',
+      runId,
+      issueNumber: claimedIssue.number,
+      prUrl,
+      packetStatus: status,
+      workerRole: effectivePacket.role,
+      verification: verification.map((result) => ({ command: result.command, exitCode: result.exitCode }))
+    });
 
     if (failedVerification || codexResult.exitCode !== 0) {
       await addIssueLabel(config, rootDir, claimedIssue.number, config.blockedLabel);
@@ -412,7 +558,7 @@ async function processIssue(config, flags, issue) {
       config,
       rootDir,
       claimedIssue.number,
-      `Codex daemon run ${runId} opened a draft PR.\n\nBranch: \`${branch}\`\nPR: ${prUrl}\n\nVerification:\n${summarizeVerification(
+      `Codex daemon run ${runId} opened a draft PR.\n\nBranch: \`${branch}\`\nPR: ${prUrl}\nPacket status: ${status}\nWorker role: ${effectivePacket.role}\n\nVerification:\n${summarizeVerification(
         verification
       )}\n\nChanged files:\n${files.map((file) => `- ${file}`).join('\n')}\n\nCurrent git status after commit:\n\`\`\`\n${statusAfter.trim() || 'clean'}\n\`\`\``
     );

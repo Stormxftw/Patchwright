@@ -59,7 +59,8 @@ export function lockPath(rootDir, issueNumber) {
 
 export async function readJsonIfExists(filePath) {
   try {
-    return JSON.parse(await readFile(filePath, 'utf8'));
+    const text = await readFile(filePath, 'utf8');
+    return JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch (error) {
     if (error.code === 'ENOENT') {
       return null;

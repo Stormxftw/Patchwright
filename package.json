@@ -8,7 +8,8 @@
     "daemon:dry-run": "node tools/codex-daemon/index.mjs --dry-run",
     "daemon:once": "node tools/codex-daemon/index.mjs --once",
     "daemon:watch": "node tools/codex-daemon/index.mjs --watch",
-    "check": "node --check tools/codex-daemon/index.mjs && node --check tools/codex-daemon/github.mjs && node --check tools/codex-daemon/state.mjs && node --check tools/codex-daemon/prompts.mjs && node --check tools/codex-daemon/codex-runner.mjs"
+    "check": "node --check tools/codex-daemon/index.mjs && node --check tools/codex-daemon/github.mjs && node --check tools/codex-daemon/state.mjs && node --check tools/codex-daemon/prompts.mjs && node --check tools/codex-daemon/codex-runner.mjs && node --check tools/codex-daemon/packet.mjs",
+    "test": "node --test"
   },
   "keywords": [
     "codex",

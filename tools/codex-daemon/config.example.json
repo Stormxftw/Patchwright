@@ -22,5 +22,8 @@
   "blockedLabel": "codex:blocked",
   "readyStatuses": ["Ready"],
   "fallbackReadyStatuses": ["Backlog"],
+  "packetIncompleteStatus": "needsInfo",
+  "packetRequiredFields": ["goal", "scope", "acceptanceCriteria", "validationCommands"],
+  "maxValidationCommands": 5,
   "watchIntervalMs": 300000
 }

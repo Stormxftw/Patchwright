@@ -45,6 +45,13 @@ export async function runCommand(command, args, options = {}) {
   }
 }
 
+export async function runShellCommand(command, options = {}) {
+  if (process.platform === 'win32') {
+    return runCommand('cmd.exe', ['/d', '/s', '/c', command], options);
+  }
+  return runCommand('/bin/sh', ['-lc', command], options);
+}
+
 export async function runJson(command, args, options = {}) {
   const result = await runCommand(command, args, options);
   try {
