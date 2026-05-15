@@ -31,6 +31,10 @@ export function sanitizeRecord(record) {
   return JSON.parse(redact(record));
 }
 
+export function parseJsonText(text) {
+  return JSON.parse(text.replace(/^\uFEFF/, ''));
+}
+
 export async function ensureRuntimeDirs(rootDir) {
   await mkdir(path.join(rootDir, runtimeDir, 'locks'), { recursive: true });
   await mkdir(path.join(rootDir, runtimeDir, 'runs'), { recursive: true });
@@ -60,7 +64,7 @@ export function lockPath(rootDir, issueNumber) {
 export async function readJsonIfExists(filePath) {
   try {
     const text = await readFile(filePath, 'utf8');
-    return JSON.parse(text.replace(/^\uFEFF/, ''));
+    return parseJsonText(text);
   } catch (error) {
     if (error.code === 'ENOENT') {
       return null;

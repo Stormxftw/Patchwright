@@ -1,6 +1,8 @@
-# Codex R&D Daemon
+# Patchwright
 
-An experimental local daemon that treats a GitHub Project board like a queue for Codex CLI work.
+<img src="tools/codex-daemon/public/assets/option-c-hammer-terminal.png" alt="Patchwright hammer terminal logo" width="96">
+
+Patchwright is an experimental local daemon that treats a GitHub Project board like a queue for Codex CLI work.
 
 The short version:
 
@@ -9,6 +11,26 @@ GitHub Project issue -> packet check -> optional localization -> Codex CLI works
 ```
 
 This is not an official OpenAI project. It is a personal experiment for exploring how far a lightweight, GitHub-native R&D loop can go before it becomes too risky, too complicated, or too opinionated.
+
+## Brand Assets
+
+Patchwright uses the hammer-terminal mark from the Round 3 branding kit. The mark is meant to signal a small local tool that turns issue packets into reviewed patches.
+
+Included assets:
+
+- `tools/codex-daemon/public/assets/option-c-hammer-terminal.svg` - primary dashboard mark.
+- `tools/codex-daemon/public/assets/option-c-hammer-terminal.png` - README and fallback raster mark.
+- `tools/codex-daemon/public/assets/patchwright-round3-contact-sheet.png` - branding contact sheet from the kit.
+
+Palette:
+
+- Background: `#090B10`
+- Card: `#0F141D`
+- Text: `#F3F4F6`
+- Muted: `#98A2B3`
+- Forge amber: `#FFB454`
+- Violet: `#7C5CFF`
+- Validation green: `#37D67A`
 
 ## Why This Exists
 
@@ -22,7 +44,7 @@ I wanted a workflow where GitHub stays the source of truth:
 
 The inspiration is simple: if an AI coding agent is going to help with real engineering work, it needs more than a prompt. It needs a queue, lifecycle states, evidence, guardrails, and a clean way to hand work back to people.
 
-This daemon is a small attempt at that.
+Patchwright is a small attempt at that.
 
 ## What It Does
 
@@ -221,6 +243,26 @@ Watch continuously:
 
 ```powershell
 npm run daemon:watch
+```
+
+Open the local dashboard:
+
+```powershell
+npm run daemon:dashboard
+```
+
+Then open:
+
+```text
+http://127.0.0.1:3765
+```
+
+The dashboard is read-only. It serves a live view from `.codex-daemon/runs.jsonl` and each run's saved `events.jsonl` and `final.md`, so worker cards update as the daemon claims an issue, starts Codex, records output, detects changed files, runs validation, and opens a draft PR.
+
+Use a different dashboard port:
+
+```powershell
+npm run daemon:dashboard -- --port 3770
 ```
 
 Allow Backlog fallback:

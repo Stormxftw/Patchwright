@@ -26,6 +26,7 @@ import {
   appendLedger,
   ensureRuntimeDirs,
   isStaleLock,
+  parseJsonText,
   readJsonIfExists,
   readLock,
   redact,
@@ -100,7 +101,7 @@ Options:
 }
 
 async function loadConfig(flags) {
-  const defaults = JSON.parse(await readFile(defaultConfigPath, 'utf8'));
+  const defaults = parseJsonText(await readFile(defaultConfigPath, 'utf8'));
   const explicitPath = flags.configPath ? path.resolve(rootDir, flags.configPath) : null;
   const local = await readJsonIfExists(explicitPath ?? localConfigPath);
   return {
@@ -407,6 +408,16 @@ async function processIssue(config, flags, issue) {
 
   await ensureWorktreeAllowed(flags);
   const claimedIssue = await claimIssue(config, flags, issue, runId);
+  await appendLedger(rootDir, {
+    type: 'run_claimed',
+    runId,
+    issueNumber: claimedIssue.number,
+    itemId: claimedIssue.itemId,
+    packetStatus: status,
+    workerRole: packet.role,
+    assignee: config.assignee,
+    branch
+  });
   let codexResult = null;
   let prUrl = null;
 
@@ -457,6 +468,13 @@ async function processIssue(config, flags, issue) {
     }
 
     const prompt = await buildCodexPrompt(rootDir, config, claimedIssue, runId, claimedIssue.projectStatus, effectivePacket);
+    await appendLedger(rootDir, {
+      type: 'codex_worker_started',
+      runId,
+      issueNumber: claimedIssue.number,
+      packetStatus: status,
+      workerRole: effectivePacket.role
+    });
     codexResult = await runCodex({ rootDir, runId, prompt });
     await appendLedger(rootDir, {
       type: 'codex_finished',

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Patchwright Monitor</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img class="mark" src="/assets/option-c-hammer-terminal.svg" alt="" aria-hidden="true">
+        <div>
+          <h1>Patchwright</h1>
+          <p>issue -> packet -> patch -> pull request</p>
+        </div>
+      </div>
+      <div class="stat">
+        <span>Last tick</span>
+        <strong id="lastTick">Waiting</strong>
+      </div>
+      <div class="stat">
+        <span>Active workers</span>
+        <strong id="activeWorkers">0</strong>
+      </div>
+      <div class="stat">
+        <span>Current errors</span>
+        <strong id="currentErrors">0</strong>
+      </div>
+      <div class="stat">
+        <span>Total runs</span>
+        <strong id="totalRuns">0</strong>
+      </div>
+      <div class="connection" id="connection">Connecting</div>
+    </header>
+
+    <main class="layout">
+      <aside class="timeline-panel">
+        <div class="panel-header">
+          <h2>Run Timeline</h2>
+          <button id="refreshButton" type="button">Refresh</button>
+        </div>
+        <ol class="timeline" id="timeline"></ol>
+      </aside>
+
+      <section class="workers-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Workers</h2>
+            <p id="latestEvent">No daemon events recorded yet</p>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Worker filter">
+            <button class="tab active" type="button" data-filter="all">All</button>
+            <button class="tab" type="button" data-filter="active">Running</button>
+            <button class="tab" type="button" data-filter="done">Finished</button>
+          </div>
+        </div>
+        <div class="worker-list" id="workerList"></div>
+      </section>
+
+      <aside class="output-panel">
+        <div class="output-header">
+          <div>
+            <h2>Live Output</h2>
+            <p id="selectedRunLabel">Select a worker</p>
+          </div>
+          <div class="streaming"><span></span> Streaming</div>
+        </div>
+        <div class="output-tabs">
+          <button class="output-tab active" type="button" data-output="events">Events</button>
+          <button class="output-tab" type="button" data-output="final">Final Message</button>
+        </div>
+        <pre class="output" id="output"></pre>
+      </aside>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

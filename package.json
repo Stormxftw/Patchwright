@@ -1,14 +1,15 @@
 {
-  "name": "codex-rnd-daemon",
+  "name": "patchwright",
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "Experimental local daemon that uses a GitHub Project board as a queue for Codex CLI R&D work.",
+  "description": "Patchwright monitors a GitHub Project board and turns ready issue packets into draft PRs through Codex CLI workers.",
   "scripts": {
     "daemon:dry-run": "node tools/codex-daemon/index.mjs --dry-run",
     "daemon:once": "node tools/codex-daemon/index.mjs --once",
     "daemon:watch": "node tools/codex-daemon/index.mjs --watch",
-    "check": "node --check tools/codex-daemon/index.mjs && node --check tools/codex-daemon/github.mjs && node --check tools/codex-daemon/state.mjs && node --check tools/codex-daemon/prompts.mjs && node --check tools/codex-daemon/codex-runner.mjs && node --check tools/codex-daemon/packet.mjs",
+    "daemon:dashboard": "node tools/codex-daemon/dashboard.mjs",
+    "check": "node --check tools/codex-daemon/index.mjs && node --check tools/codex-daemon/github.mjs && node --check tools/codex-daemon/state.mjs && node --check tools/codex-daemon/prompts.mjs && node --check tools/codex-daemon/codex-runner.mjs && node --check tools/codex-daemon/packet.mjs && node --check tools/codex-daemon/dashboard.mjs && node --check tools/codex-daemon/public/app.js",
     "test": "node --test"
   },
   "keywords": [
