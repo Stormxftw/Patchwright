@@ -1,0 +1,26 @@
+{
+  "repo": "OWNER/REPO",
+  "owner": "OWNER",
+  "projectNumber": 1,
+  "projectId": "PROJECT_V2_NODE_ID",
+  "projectStatusFieldName": "Daemon Status",
+  "statusFieldId": "PROJECT_V2_DAEMON_STATUS_FIELD_ID",
+  "statusOptions": {
+    "backlog": "BACKLOG_OPTION_ID",
+    "ready": "READY_OPTION_ID",
+    "inProgress": "IN_PROGRESS_OPTION_ID",
+    "inReview": "IN_REVIEW_OPTION_ID",
+    "done": "DONE_OPTION_ID",
+    "blocked": "BLOCKED_OPTION_ID",
+    "needsInfo": "NEEDS_INFO_OPTION_ID",
+    "abandoned": "ABANDONED_OPTION_ID"
+  },
+  "assignee": "GITHUB_USERNAME",
+  "branchPrefix": "codex/rnd-",
+  "maxConcurrentRuns": 1,
+  "claimLabel": "codex:claimed",
+  "blockedLabel": "codex:blocked",
+  "readyStatuses": ["Ready"],
+  "fallbackReadyStatuses": ["Backlog"],
+  "watchIntervalMs": 300000
+}

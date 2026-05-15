@@ -1,0 +1,25 @@
+{
+  "name": "codex-rnd-daemon",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Experimental local daemon that uses a GitHub Project board as a queue for Codex CLI R&D work.",
+  "scripts": {
+    "daemon:dry-run": "node tools/codex-daemon/index.mjs --dry-run",
+    "daemon:once": "node tools/codex-daemon/index.mjs --once",
+    "daemon:watch": "node tools/codex-daemon/index.mjs --watch",
+    "check": "node --check tools/codex-daemon/index.mjs && node --check tools/codex-daemon/github.mjs && node --check tools/codex-daemon/state.mjs && node --check tools/codex-daemon/prompts.mjs && node --check tools/codex-daemon/codex-runner.mjs"
+  },
+  "keywords": [
+    "codex",
+    "github-projects",
+    "automation",
+    "agent",
+    "daemon",
+    "rnd"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

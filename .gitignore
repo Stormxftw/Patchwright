@@ -1,0 +1,8 @@
+.codex-daemon/
+node_modules/
+dist/
+.env
+.env.*
+*.log
+*.local
+.DS_Store
