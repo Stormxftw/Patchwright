@@ -1,0 +1,66 @@
+<svg width="1600" height="420" viewBox="0 0 1600 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Patchwright</title>
+  <desc id="desc">A dark forge-inspired Patchwright README banner showing the hammer-terminal mark and the flow from issue packets to draft pull requests.</desc>
+  <defs>
+    <linearGradient id="panel" x1="52" y1="52" x2="1548" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="0.55" stop-color="#0F141D"/>
+      <stop offset="1" stop-color="#090B10"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="268" y1="78" x2="1496" y2="344" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB454"/>
+      <stop offset="0.52" stop-color="#7C5CFF"/>
+      <stop offset="1" stop-color="#37D67A"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.486 0 0 0 0 0.361 0 0 0 0 1 0 0 0 0.45 0"/>
+      <feBlend in2="SourceGraphic" mode="screen"/>
+    </filter>
+    <filter id="amberGlow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1 0 0 0 0 0.706 0 0 0 0 0.329 0 0 0 0.35 0"/>
+      <feBlend in2="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="420" rx="0" fill="#090B10"/>
+  <rect x="36" y="36" width="1528" height="348" rx="48" fill="url(#panel)" stroke="#253145" stroke-width="2"/>
+  <path d="M84 335C278 178 437 431 646 246C850 65 1036 305 1223 157C1347 59 1461 91 1516 133" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" opacity="0.55" filter="url(#softGlow)"/>
+  <path d="M84 336C278 179 437 432 646 247C850 66 1036 306 1223 158C1347 60 1461 92 1516 134" stroke="url(#accent)" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+
+  <g transform="translate(112 78) scale(0.22)">
+    <rect width="1200" height="1200" rx="250" fill="#090B10"/>
+    <path d="M329 377H706L799 470V823H329V377Z" fill="#0F141D" stroke="#F3F4F6" stroke-width="48" stroke-linejoin="round"/>
+    <path d="M706 377V470H799" stroke="#F3F4F6" stroke-width="48" stroke-linejoin="round"/>
+    <path d="M454 579L540 665L454 751" stroke="#FFB454" stroke-width="54" stroke-linecap="round" stroke-linejoin="round" filter="url(#amberGlow)"/>
+    <path d="M590 748H720" stroke="#98A2B3" stroke-width="54" stroke-linecap="round"/>
+    <path d="M774 282L914 422" stroke="#7C5CFF" stroke-width="52" stroke-linecap="round"/>
+    <path d="M828 230L966 368" stroke="#7C5CFF" stroke-width="70" stroke-linecap="round"/>
+    <path d="M878 474L644 708" stroke="#7C5CFF" stroke-width="52" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(430 104)">
+    <text x="0" y="78" fill="#F3F4F6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="82" font-weight="800" letter-spacing="-2">Patchwright</text>
+    <text x="4" y="130" fill="#98A2B3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="500">turn scoped GitHub issue packets into reviewed patches</text>
+    <g transform="translate(4 178)" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">
+      <rect x="0" y="0" width="178" height="50" rx="25" fill="#161D2A" stroke="#FFB454" stroke-opacity="0.55"/>
+      <text x="28" y="33" fill="#FFB454">packet check</text>
+      <path d="M198 25H252" stroke="#374151" stroke-width="4" stroke-linecap="round"/>
+      <path d="M242 15L252 25L242 35" stroke="#374151" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="274" y="0" width="188" height="50" rx="25" fill="#161D2A" stroke="#7C5CFF" stroke-opacity="0.6"/>
+      <text x="304" y="33" fill="#A997FF">Codex worker</text>
+      <path d="M482 25H536" stroke="#374151" stroke-width="4" stroke-linecap="round"/>
+      <path d="M526 15L536 25L526 35" stroke="#374151" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="558" y="0" width="160" height="50" rx="25" fill="#161D2A" stroke="#37D67A" stroke-opacity="0.55"/>
+      <text x="590" y="33" fill="#37D67A">draft PR</text>
+    </g>
+  </g>
+
+  <g opacity="0.38">
+    <circle cx="1408" cy="90" r="5" fill="#FFB454"/>
+    <circle cx="1450" cy="126" r="4" fill="#7C5CFF"/>
+    <circle cx="1354" cy="312" r="4" fill="#37D67A"/>
+    <circle cx="1512" cy="292" r="6" fill="#FFB454"/>
+  </g>
+</svg>
