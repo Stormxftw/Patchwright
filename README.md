@@ -1,6 +1,8 @@
 # Patchwright
 
-<img src="tools/codex-daemon/public/assets/option-c-hammer-terminal.png" alt="Patchwright hammer terminal logo" width="96">
+<p align="center">
+  <img src="tools/codex-daemon/public/assets/patchwright-readme-banner.svg" alt="Patchwright banner: issue packets to reviewed patches" width="100%">
+</p>
 
 Patchwright is an experimental local daemon that treats a GitHub Project board like a queue for Codex CLI work.
 
@@ -18,8 +20,9 @@ Patchwright uses the hammer-terminal mark from the Round 3 branding kit. The mar
 
 Included assets:
 
+- `tools/codex-daemon/public/assets/patchwright-readme-banner.svg` - primary README banner.
 - `tools/codex-daemon/public/assets/option-c-hammer-terminal.svg` - primary dashboard mark.
-- `tools/codex-daemon/public/assets/option-c-hammer-terminal.png` - README and fallback raster mark.
+- `tools/codex-daemon/public/assets/option-c-hammer-terminal.png` - fallback raster mark.
 - `tools/codex-daemon/public/assets/patchwright-round3-contact-sheet.png` - branding contact sheet from the kit.
 
 Palette:
